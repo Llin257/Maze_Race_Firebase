@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+attribute vec4 vColor;
+attribute vec2 vTexCoord;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+uniform mat3 normalMatrix;
+uniform mat4 worldViewMatrix;
+
+
+void
+main()
+{
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    //vec3 pos = -(projectionMatrix * modelViewMatrix * worldViewMatrix * vPosition).xyz;
+    vec3 light = lightPosition.xyz;
+    vec3 L;
+    
+    // check for directional light
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize( lightPosition.xyz - pos );
+	
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+
+    // Transform vertex normal into eye coordinates
+    vec3 N = normalize( normalMatrix * vNormal.xyz );
+    //vec3 N = normalize( normalMatrix * (worldViewMatrix * vNormal).xyz );
+    //vec4 NN = vec4( N, 0 );
+    //N = normalize( (projectionMatrix * NN).xyz);
+    //vec3 N = normalize( (projectionMatrix * modelViewMatrix * worldViewMatrix * vNormal).xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks*specularProduct;
+    
+    if( dot(L, N) < 0.0 ) {
+	   specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+    // LOOK AT ME
+    gl_Position = projectionMatrix * modelViewMatrix * worldViewMatrix * vPosition;
+    
+    //fColor = ambient + diffuse + specular;
+    fColor = vColor * (ambient + diffuse + specular);
+    fTexCoord = vTexCoord;
+
+    //fColor.a = 1.0;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+uniform sampler2D texture;
+
+void
+main()
+{
+    //gl_FragColor = fColor;
+    gl_FragColor = fColor*texture2D( texture, fTexCoord );
+
+}
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-database.js"></script>
+
+<script type="text/javascript" src="./Common/webgl-utils.js"></script>
+<script type="text/javascript" src="./Common/initShaders.js"></script>
+<link rel="stylesheet" href="styles.css">
+
+<script type="text/javascript" src="./Common/MV.js"></script>
+<script type="text/javascript" src="maze.js"></script>
+<script type="text/javascript" src="app.js"></script>
+
+
+<head>
+    <h1 id="title">~ Maze Race ~</h1>
+    <p id="desc"> <b> Objective: </b> <br />Solve the maze by finding the way to the bottom right corner using the arrow keys. <br />Proceed to higher levels to solve larger & more intricate mazes!</p>
+    <a href="https://en.wikipedia.org/wiki/Maze_generation_algorithm" id="demo">Maze Creation (Presentation Explanation)</a>
+    <h2 id ="time"><time>00:00:00</time></h2>
+</head>
+
+<body>
+<canvas id="gl-canvas" width="700" height="700">
+<!--<canvas id="gl-canvas" width="700" height="700" style="border:1px solid #d3d3d3"> -->
+<pre id = "object">
+<pre id = "WinState2">
+<h1 id ="bigOne"> </h1>
+
+</canvas>
+</body>
+</html>
